@@ -7,7 +7,9 @@ You can found the **Native MQTT client** library for ESP8266 work well here:
 
 Source code bridge for ESP8266 can found here: [https://github.com/tuanpmt/esp_bridge](https://github.com/tuanpmt/esp_bridge)
 
-We have modified the examples for Cactus Micro Rev2. Works perfect!
+We have modified the examples for Cactus Micro Rev2. Works perfectly! 
+
+Thanks for Tuan PM for his work.
 
 Features
 ========
@@ -50,7 +52,7 @@ Please refer [the wiki](http://wiki.aprbrother.com/wiki/How_to_made_Cactus_Micro
 Here's the link for [esptool](https://github.com/AprilBrother/esptool).
 
 ```python
-esp8266/tools/esptool.py -p COM1 write_flash 0x00000 esp8266/release/0x00000.bin 0x40000 esp8266/release/0x40000.bin
+./esptool.py -p COM1 write_flash 0x00000 esp8266/release/0x00000.bin 0x40000 esp8266/release/0x40000.bin
 ```
     
 Example read DHT11 and send to [thingspeak.com](http://thingspeak.com)

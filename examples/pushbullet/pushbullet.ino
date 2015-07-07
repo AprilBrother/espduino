@@ -5,17 +5,17 @@
  *       Tuan PM <tuanpm@live.com>
  */
 
-#include <SoftwareSerial.h>
 #include <espduino.h>
 #include <rest.h>
 #include <dht.h>
 
+#define PIN_ENABLE_ESP 13
+#define SSID  "YOUR-SSID"
+#define PASS  "YOUR-WIFI-PASS"
+
 dht DHT;
 
-
-SoftwareSerial debugPort(4, 5); // RX, TX
-
-ESP esp(&Serial, &debugPort, 6);
+ESP esp(&Serial1, &Serial, 6);
 
 REST rest(&esp);
 
@@ -32,7 +32,7 @@ void wifiCb(void* response)
   if(res.getArgc() == 1) {
     res.popArgs((uint8_t*)&status, 4);
     if(status == STATION_GOT_IP) {
-      debugPort.println("WIFI CONNECTED");
+      Serial.println("WIFI CONNECTED");
      
       wifiConnected = true;
     } else {
@@ -48,28 +48,28 @@ void pirChange()
 }
 
 void setup() {
+  Serial1.begin(19200);
   Serial.begin(19200);
-  debugPort.begin(19200);
   esp.enable();
   delay(500);
   esp.reset();
   delay(500);
   while(!esp.ready());
 
-  debugPort.println("ARDUINO: setup rest client");
+  Serial.println("ARDUINO: setup rest client");
   if(!rest.begin("api.pushbullet.com", 443, true)) {
-    debugPort.println("ARDUINO: failed to setup rest client");
+    Serial.println("ARDUINO: failed to setup rest client");
     while(1);
   }
   rest.setContentType("application/json");
   rest.setHeader("Authorization: Bearer <your_api_key>\r\n");
 
   /*setup wifi*/
-  debugPort.println("ARDUINO: setup wifi");
+  Serial.println("ARDUINO: setup wifi");
   esp.wifiCb.attach(&wifiCb);
 
-  esp.wifiConnect("DVES_HOME","wifipassword");
-  debugPort.println("ARDUINO: system started");
+  esp.wifiConnect(SSID, PASS);
+  Serial.println("ARDUINO: system started");
 
   attachInterrupt(0, pirChange, CHANGE);
 }
@@ -79,16 +79,16 @@ void loop() {
   esp.process();
   if(wifiConnected && readyToSend) {
       sprintf(data_buf, "{\"type\": \"note\", \"title\": \"PIR Motion\", \"body\": \"Status = [%s]\"}", pirStatus[pirState]);
-      debugPort.println(data_buf);
+      Serial.println(data_buf);
       rest.post("/v2/pushes", (const char*)data_buf);
-      debugPort.println("ARDUINO: send post");
+      Serial.println("ARDUINO: send post");
 
       if(rest.getResponse(data_buf, 256) == HTTP_STATUS_OK){
-        debugPort.println("ARDUINO: POST successful");
+        Serial.println("ARDUINO: POST successful");
 
     
       } else {
-        debugPort.println("ARDUINO: POST error");
+        Serial.println("ARDUINO: POST error");
       }
       delay(2000);
       readyToSend = false;

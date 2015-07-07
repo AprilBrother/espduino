@@ -7,6 +7,8 @@ You can found the **Native MQTT client** library for ESP8266 work well here:
 
 Source code bridge for ESP8266 can found here: [https://github.com/tuanpmt/esp_bridge](https://github.com/tuanpmt/esp_bridge)
 
+We have modified the examples for Cactus Micro Rev2. Works perfect!
+
 Features
 ========
 - Rock Solid wifi network client for Arduino/mbed (coming soon)
@@ -43,24 +45,14 @@ cd espduino
 
 **2. Program ESP8266:**
 
-- Wiring: ![Program Connection diagram](fritzing/program_esp8266_bb.png?raw=true)
-- Program release firmware:
+Please refer [the wiki](http://wiki.aprbrother.com/wiki/How_to_made_Cactus_Micro_R2_as_ESP8266_programmer) for burn firmware to esp8266 
+
+Here's the link for [esptool](https://github.com/AprilBrother/esptool).
 
 ```python
 esp8266/tools/esptool.py -p COM1 write_flash 0x00000 esp8266/release/0x00000.bin 0x40000 esp8266/release/0x40000.bin
 ```
     
-- Or Program debug firmware (Debug message from ESP8266 will forward to debug port of Arduino)
-
-```python
-esp8266/tools/esptool.py -p COM1 write_flash 0x00000 esp8266/debug/0x00000.bin 0x40000 esp8266/debug/0x40000.bin
-```
-
-**3. Wiring:**
-![Program Connection diagram](fritzing/espdruino_bb.png?raw=true)
-
-**4. Import arduino library and run example:**
-
 Example read DHT11 and send to [thingspeak.com](http://thingspeak.com)
 =========
 - ```espduino/examples/thingspeak/thingspeak.ino```
@@ -83,12 +75,14 @@ Example for MQTT client
  * \author
  *       Tuan PM <tuanpm@live.com>
  */
-#include <SoftwareSerial.h>
 #include <espduino.h>
 #include <mqtt.h>
 
-SoftwareSerial debugPort(2, 3); // RX, TX
-ESP esp(&Serial, &debugPort, 4);
+#define PIN_ENABLE_ESP 13
+#define SSID  "YOUR-SSID"
+#define PASS  "YOUR-WIFI-PASS"
+
+ESP esp(&Serial1, &Serial, PIN_ENABLE_ESP);
 MQTT mqtt(&esp);
 boolean wifiConnected = false;
 
@@ -100,8 +94,8 @@ void wifiCb(void* response)
   if(res.getArgc() == 1) {
     res.popArgs((uint8_t*)&status, 4);
     if(status == STATION_GOT_IP) {
-      debugPort.println("WIFI CONNECTED");
-      mqtt.connect("yourserver.com", 1883, false);
+      Serial.println("WIFI CONNECTED");
+      mqtt.connect("test.mosquitto.org", 1883, false);
       wifiConnected = true;
       //or mqtt.connect("host", 1883); /*without security ssl*/
     } else {
@@ -114,7 +108,7 @@ void wifiCb(void* response)
 
 void mqttConnected(void* response)
 {
-  debugPort.println("Connected");
+  Serial.println("Connected");
   mqtt.subscribe("/topic/0"); //or mqtt.subscribe("topic"); /*with qos = 0*/
   mqtt.subscribe("/topic/1");
   mqtt.subscribe("/topic/2");
@@ -129,13 +123,13 @@ void mqttData(void* response)
 {
   RESPONSE res(response);
 
-  debugPort.print("Received: topic=");
+  Serial.print("Received: topic=");
   String topic = res.popString();
-  debugPort.println(topic);
+  Serial.println(topic);
 
-  debugPort.print("data=");
+  Serial.print("data=");
   String data = res.popString();
-  debugPort.println(data);
+  Serial.println(data);
 
 }
 void mqttPublished(void* response)
@@ -143,22 +137,22 @@ void mqttPublished(void* response)
 
 }
 void setup() {
+  Serial1.begin(19200);
   Serial.begin(19200);
-  debugPort.begin(19200);
   esp.enable();
   delay(500);
   esp.reset();
   delay(500);
   while(!esp.ready());
 
-  debugPort.println("ARDUINO: setup mqtt client");
+  Serial.println("ARDUINO: setup mqtt client");
   if(!mqtt.begin("DVES_duino", "admin", "Isb_C4OGD4c3", 120, 1)) {
-    debugPort.println("ARDUINO: fail to setup mqtt");
+    Serial.println("ARDUINO: fail to setup mqtt");
     while(1);
   }
 
 
-  debugPort.println("ARDUINO: setup mqtt lwt");
+  Serial.println("ARDUINO: setup mqtt lwt");
   mqtt.lwt("/lwt", "offline", 0, 0); //or mqtt.lwt("/lwt", "offline");
 
 /*setup mqtt events */
@@ -168,13 +162,13 @@ void setup() {
   mqtt.dataCb.attach(&mqttData);
 
   /*setup wifi*/
-  debugPort.println("ARDUINO: setup wifi");
+  Serial.println("ARDUINO: setup wifi");
   esp.wifiCb.attach(&wifiCb);
 
-  esp.wifiConnect("DVES_HOME","wifipassword");
+  esp.wifiConnect(SSID, PASS);
 
 
-  debugPort.println("ARDUINO: system started");
+  Serial.println("ARDUINO: system started");
 }
 
 void loop() {
@@ -196,13 +190,14 @@ Example for RESTful client
  *       Tuan PM <tuanpm@live.com>
  */
 
-#include <SoftwareSerial.h>
 #include <espduino.h>
 #include <rest.h>
 
-SoftwareSerial debugPort(2, 3); // RX, TX
+#define PIN_ENABLE_ESP 13
+#define SSID  "YOUR-SSID"
+#define PASS  "YOUR-WIFI-PASS"
 
-ESP esp(&Serial, &debugPort, 4);
+ESP esp(&Serial1, &Serial, PIN_ENABLE_ESP);
 
 REST rest(&esp);
 
@@ -216,7 +211,7 @@ void wifiCb(void* response)
   if(res.getArgc() == 1) {
     res.popArgs((uint8_t*)&status, 4);
     if(status == STATION_GOT_IP) {
-      debugPort.println("WIFI CONNECTED");
+      Serial.println("WIFI CONNECTED");
      
       wifiConnected = true;
     } else {
@@ -227,25 +222,25 @@ void wifiCb(void* response)
 }
 
 void setup() {
+  Serial1.begin(19200);
   Serial.begin(19200);
-  debugPort.begin(19200);
   esp.enable();
   delay(500);
   esp.reset();
   delay(500);
   while(!esp.ready());
 
-  debugPort.println("ARDUINO: setup rest client");
+  Serial.println("ARDUINO: setup rest client");
   if(!rest.begin("yourapihere-com-r2pgihowjx7x.runscope.net")) {
-    debugPort.println("ARDUINO: failed to setup rest client");
+    Serial.println("ARDUINO: failed to setup rest client");
     while(1);
   }
 
   /*setup wifi*/
-  debugPort.println("ARDUINO: setup wifi");
+  Serial.println("ARDUINO: setup wifi");
   esp.wifiCb.attach(&wifiCb);
-  esp.wifiConnect("DVES_HOME","wifipassword");
-  debugPort.println("ARDUINO: system started");
+  esp.wifiConnect(SSID, PASS);
+  Serial.println("ARDUINO: system started");
 }
 
 void loop() {
@@ -254,12 +249,13 @@ void loop() {
   if(wifiConnected) {
     rest.get("/");
     if(rest.getResponse(response, 266) == HTTP_STATUS_OK){
-      debugPort.println("RESPONSE: ");
-      debugPort.println(response);
+      Serial.println("ARDUINO: GET successful");
+      Serial.println(response);
     }
     delay(1000);
   }
 }
+
 ```
 
 MQTT API:

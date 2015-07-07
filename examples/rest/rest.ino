@@ -5,13 +5,14 @@
  *       Tuan PM <tuanpm@live.com>
  */
 
-#include <SoftwareSerial.h>
 #include <espduino.h>
 #include <rest.h>
 
-SoftwareSerial debugPort(2, 3); // RX, TX
+#define PIN_ENABLE_ESP 13
+#define SSID  "YOUR-SSID"
+#define PASS  "YOUR-WIFI-PASS"
 
-ESP esp(&Serial, &debugPort, 4);
+ESP esp(&Serial1, &Serial, PIN_ENABLE_ESP);
 
 REST rest(&esp);
 
@@ -25,7 +26,7 @@ void wifiCb(void* response)
   if(res.getArgc() == 1) {
     res.popArgs((uint8_t*)&status, 4);
     if(status == STATION_GOT_IP) {
-      debugPort.println("WIFI CONNECTED");
+      Serial.println("WIFI CONNECTED");
      
       wifiConnected = true;
     } else {
@@ -36,25 +37,25 @@ void wifiCb(void* response)
 }
 
 void setup() {
+  Serial1.begin(19200);
   Serial.begin(19200);
-  debugPort.begin(19200);
   esp.enable();
   delay(500);
   esp.reset();
   delay(500);
   while(!esp.ready());
 
-  debugPort.println("ARDUINO: setup rest client");
+  Serial.println("ARDUINO: setup rest client");
   if(!rest.begin("yourapihere-com-r2pgihowjx7x.runscope.net")) {
-    debugPort.println("ARDUINO: failed to setup rest client");
+    Serial.println("ARDUINO: failed to setup rest client");
     while(1);
   }
 
   /*setup wifi*/
-  debugPort.println("ARDUINO: setup wifi");
+  Serial.println("ARDUINO: setup wifi");
   esp.wifiCb.attach(&wifiCb);
-  esp.wifiConnect("DVES_HOME","wifipassword");
-  debugPort.println("ARDUINO: system started");
+  esp.wifiConnect(SSID, PASS);
+  Serial.println("ARDUINO: system started");
 }
 
 void loop() {
@@ -63,8 +64,8 @@ void loop() {
   if(wifiConnected) {
     rest.get("/");
     if(rest.getResponse(response, 266) == HTTP_STATUS_OK){
-      debugPort.println("ARDUINO: GET successful");
-      debugPort.println(response);
+      Serial.println("ARDUINO: GET successful");
+      Serial.println(response);
     }
     delay(1000);
   }

@@ -15,7 +15,7 @@
 
 dht DHT;
 
-ESP esp(&Serial1, &Serial, 4);
+ESP esp(&Serial1, &Serial, PIN_ENABLE_ESP);
 
 REST rest(&esp);
 
